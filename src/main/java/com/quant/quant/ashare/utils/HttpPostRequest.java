@@ -82,10 +82,14 @@ public class HttpPostRequest {
     public static void main(String[] args){
         //System.out.println("{\"qry_by\":\"name\", \"name\":\"Tim\"}");
         //postParamsString = "{\"api_name\": \"stock_basic\", \"token\": \"390d4a5d2cafe74fd85181e25b8108ac35f651f4f4ad0c5dc2932b32\", \"params\": {\"list_stauts\":\"L\"},\"fields\": \"ts_code,name,area,industry,list_date\"}";
+        /*
         String creatsql = "CREATE TABLE pepole("
                 + "name varchar(10) not null,"
                 + "age int(4) not null"
                 + ")charset=utf8;";
         System.out.println(creatsql);
+
+         */
+        String result = doPost("\"daily\"","{\"ts_code\":\"000001.SZ\",\"start_date\":\"20200405\",\"end_date\":\"20200414\"}","\"\"");
     }
 }

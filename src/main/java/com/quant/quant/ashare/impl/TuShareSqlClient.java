@@ -1,13 +1,12 @@
 package com.quant.quant.ashare.impl;
 
 import com.quant.quant.ashare.SqlClient;
-import com.quant.quant.ashare.model.ListStatus;
 import com.quant.quant.ashare.model.ListStatusData;
 
 import java.sql.SQLException;
 import java.util.List;
 
-import static com.quant.quant.ashare.sql.SqlOp.*;
+import static com.quant.quant.sql.SqlOp.*;
 
 public class TuShareSqlClient implements SqlClient{
     private TuShareQueryClient tuShareQueryClient = new TuShareQueryClient();
