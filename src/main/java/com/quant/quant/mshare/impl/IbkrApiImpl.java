@@ -2,6 +2,7 @@ package com.quant.quant.mshare.auth.impl;
 
 /* Copyright (C) 2019 Interactive Brokers LLC. All rights reserved. This code is subject to the terms
  * and conditions of the IB API Non-Commercial License or the IB API Commercial License, as applicable. */
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import com.ib.client.*;
@@ -69,7 +70,7 @@ public class IbkrApiImpl {
         //whatIfSamples(wrapper.getClient(), wrapper.getCurrentOrderId());
         //historicalTicks(wrapper.getClient());
 
-        Thread.sleep(1000);
+        Thread.sleep(1000000);
         m_client.eDisconnect();
     }
 
@@ -531,14 +532,30 @@ public class IbkrApiImpl {
         //client.reqMatchingSymbols(211, "IB");
         //! [reqmatchingsymbols]
         //String queryTime = DateTime.Now.AddMonths(-6).ToString("yyyyMMdd HH:mm:ss");
-        Calendar cal = Calendar.getInstance();
         SimpleDateFormat form = new SimpleDateFormat("yyyyMMdd HH:mm:ss");
-        String formatted = form.format(cal.getTime());
-        formatted = "20200421 10:00:00";
-        client.reqHistoricalData(18000, ContractSamples.USStockAtSmart(),formatted, "1800 S", "1 secs", "TRADES", 0, 1, false, null);
-        Thread.sleep(1000);
-        /*** Canceling historical data request for continuous futures ***/
-        client.cancelHistoricalData(18000);
+        String formatted = "20200501 20:00:00";
+        Date date = null;
+        try {
+            date = form.parse(formatted);
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+        long interval = 1800 * 1000;
+        //client.reqHistoricalData(18000, ContractSamples.USStockAtSmart(), formatted, "1800 S", "1 secs", "TRADES", 0, 1, false, null);
+        //client.reqHistoricalData(18000, ContractSamples.USStockAtSmart(), "20200422 19:00:00", "1800 S", "15 secs", "TRADES", 0, 1, false, null);
+        //Thread.sleep(2000);
+        //client.cancelHistoricalData(18000);
+
+        for (int i=0;i<32;i++) {
+            formatted = form.format(date);
+            //System.out.println(formatted);
+            client.reqHistoricalData(18000, ContractSamples.USStockAtSmart(), formatted, "1800 S", "15 secs", "TRADES", 0, 1, false, null);
+            Thread.sleep(10000);
+            client.cancelHistoricalData(18000);
+            System.out.println("step finished");
+            date = new Date(date.getTime() - interval);
+        }
+
     }
 
     private static void contractNewsFeed(EClientSocket client) {

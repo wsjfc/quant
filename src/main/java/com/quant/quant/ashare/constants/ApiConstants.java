@@ -7,6 +7,7 @@ import java.util.Properties;
 public class ApiConstants {
     private String API_TOKEN;
     private String BASE_URL;
+    private final static ApiConstants instance = new ApiConstants();
 
     public String getApiToken() {
         return API_TOKEN;
@@ -16,7 +17,11 @@ public class ApiConstants {
         return BASE_URL;
     }
 
-    public ApiConstants() {
+    public static ApiConstants getInstance() {
+        return instance;
+    }
+
+    private ApiConstants() {
         Properties properties = new Properties();
         InputStream dirsConf = this.getClass().getClassLoader().getResourceAsStream("config.properties");
         try {

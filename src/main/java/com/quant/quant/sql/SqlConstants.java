@@ -9,6 +9,7 @@ public class SqlConstants {
     private String DB_URL;
     private String USER;
     private String PASS;
+    private final static SqlConstants instance = new SqlConstants();
 
     public String getJDBC_DRIVER() {
         return JDBC_DRIVER;
@@ -26,7 +27,11 @@ public class SqlConstants {
         return PASS;
     }
 
-    public SqlConstants(){
+    public static SqlConstants getInstance() {
+        return instance;
+    }
+
+    private SqlConstants(){
         Properties properties = new Properties();
         InputStream dirsConf = this.getClass().getClassLoader().getResourceAsStream("config.properties");
         try {

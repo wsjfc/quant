@@ -2,6 +2,7 @@ package com.quant.quant.ashare.impl;
 
 import com.quant.quant.ashare.SqlClient;
 import com.quant.quant.ashare.model.ListStatusData;
+import com.quant.quant.sql.SqlOp;
 
 import java.sql.SQLException;
 import java.util.List;
@@ -10,6 +11,7 @@ import static com.quant.quant.sql.SqlOp.*;
 
 public class TuShareSqlClient implements SqlClient{
     private TuShareQueryClient tuShareQueryClient = new TuShareQueryClient();
+    SqlOp conn = new SqlOp();
     @Override
     public void createListStatusTable() throws SQLException, ClassNotFoundException {
         String sql = "CREATE TABLE listStatus("
@@ -21,7 +23,7 @@ public class TuShareSqlClient implements SqlClient{
                 + "market varchar(10),"
                 + "list_date varchar(10)"
                 + ")charset=utf8;";
-        createTable(sql);
+        //conn.createTable(sql);
     }
 
     public void insertListStatusTable() throws SQLException, ClassNotFoundException {
@@ -29,7 +31,7 @@ public class TuShareSqlClient implements SqlClient{
         List<String> fields = listStatusData.getFields();
         List<List<String>> data = listStatusData.getItems();
         String tableName = "listStatus";
-        insertTable(tableName,fields,data);
+        //conn.insertTable(tableName,fields,data);
     }
 
     public static void main(String[] args) throws SQLException, ClassNotFoundException {

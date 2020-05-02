@@ -15,7 +15,7 @@ import com.quant.quant.ashare.model.ListStatus;
 
 public class HttpPostRequest {
     public static String doPost(String apiName,String params,String fields){
-        ApiConstants apiConstants = new ApiConstants();
+        ApiConstants apiConstants = ApiConstants.getInstance();
         final String API_TOKEN = apiConstants.getApiToken();
         final String BASE_URL = apiConstants.getBaseUrl();
         OutputStreamWriter out = null;

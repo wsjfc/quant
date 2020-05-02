@@ -1,19 +1,20 @@
 package com.quant.quant.mshare.auth.impl;
 
-/* Copyright (C) 2019 Interactive Brokers LLC. All rights reserved. This code is subject to the terms
- * and conditions of the IB API Non-Commercial License or the IB API Commercial License, as applicable. */
-
+import java.beans.PropertyVetoException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Array;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.text.DecimalFormat;
-import java.util.List;
-import java.util.Map;
+import java.text.SimpleDateFormat;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Properties;
-import java.util.Set;
-
 import com.ib.client.*;
-import static com.quant.quant.sql.SqlOp.*;
+import com.mchange.v2.c3p0.ComboPooledDataSource;
+import com.quant.quant.sql.SqlConstants;
+import com.quant.quant.sql.SqlOp;
+import com.quant.quant.mshare.auth.utils.Tools;
 
 //! [ewrapperimpl]
 public class EWrapperImpl implements EWrapper {
@@ -23,13 +24,38 @@ public class EWrapperImpl implements EWrapper {
     private EReaderSignal readerSignal;
     private EClientSocket clientSocket;
     protected int currentOrderId = -1;
+    private SqlOp sqlOp;
     //! [socket_declare]
     private Properties properties = new Properties();
+    private ComboPooledDataSource connPool = connPool();
+
+    private ComboPooledDataSource connPool(){
+        SqlConstants sqlConstants = SqlConstants.getInstance();
+        final String JDBC_DRIVER = sqlConstants.getJDBC_DRIVER();
+        final String DB_URL = sqlConstants.getDB_URL();
+        final String USER = sqlConstants.getUSER();
+        final String PASS = sqlConstants.getPASS();
+        ComboPooledDataSource cpds = new ComboPooledDataSource();
+        try {
+            cpds.setDriverClass( "com.mysql.jdbc.Driver" ); //loads the jdbc driver
+        } catch (PropertyVetoException e) {
+            e.printStackTrace();
+        }
+        cpds.setJdbcUrl(DB_URL);
+        cpds.setUser(USER);
+        cpds.setPassword(PASS);
+        cpds.setMinPoolSize(10);
+        cpds.setMaxPoolSize(300);
+        cpds.setAcquireIncrement(5);
+
+        return cpds;
+    }
 
     //! [socket_init]
     public EWrapperImpl() {
         readerSignal = new EJavaSignal();
         clientSocket = new EClientSocket(this, readerSignal);
+        sqlOp = new SqlOp();
         InputStream reqIdConf = this.getClass().getClassLoader().getResourceAsStream("reqId.properties");
         try {
             properties.load(reqIdConf);
@@ -239,9 +265,32 @@ public class EWrapperImpl implements EWrapper {
     //! [historicaldata]
     @Override
     public void historicalData(int reqId, Bar bar) {
-        if (!tableIsExit(properties.getProperty(String.valueOf(reqId)))){
-            createTable(null);
-
+        String tableName = properties.getProperty(String.valueOf(reqId));
+        List<String> fields = Arrays.asList("time", "open", "high", "low", "close", "volume", "count", "wap","normTime");
+        List<String> fieldTypes = Arrays.asList("varchar(20)","varchar(10)","varchar(10)","varchar(10)","varchar(10)","varchar(10)","varchar(10)","varchar(10)","varchar(5)");
+        Connection sqlConn = null;
+        try {
+            sqlConn = connPool.getConnection();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        if (!sqlOp.tableIsExit(properties.getProperty(String.valueOf(reqId)),sqlConn)){
+            sqlOp.createTable(tableName,fields,fieldTypes,fields.get(0),sqlConn);
+        }
+        //bar.time().split(" ")[1]
+        String normTime;
+        if (Tools.judgeNormalTime(bar.time())){
+            normTime = "1";
+        } else{
+            normTime = "0";
+        }
+        List<String> data = Arrays.asList(bar.time(), String.valueOf(bar.open()), String.valueOf(bar.high()), String.valueOf(bar.low()),
+                String.valueOf(bar.close()),String.valueOf(bar.volume()), String.valueOf(bar.count()), String.valueOf(bar.wap()),normTime);
+        sqlOp.insertTable(properties.getProperty(String.valueOf(reqId)),fields,data,sqlConn);
+        try {
+            sqlConn.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
         //System.out.println("HistoricalData. "+reqId+" - Dateis: "+bar.time()+", Open: "+bar.open()+", High: "+bar.high()+", Low: "+bar.low()+", Close: "+bar.close()+", Volume: "+bar.volume()+", Count: "+bar.count()+", WAP: "+bar.wap());
     }
