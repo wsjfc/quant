@@ -1,4 +1,4 @@
-package com.quant.quant.sql;
+package com.quant.quant.config;
 
 import java.io.IOException;
 import java.io.InputStream;

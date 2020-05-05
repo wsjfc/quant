@@ -1,4 +1,4 @@
-package com.quant.quant.mshare.auth.impl;
+package com.quant.quant.mshare.impl;
 
 /* Copyright (C) 2019 Interactive Brokers LLC. All rights reserved. This code is subject to the terms
  * and conditions of the IB API Non-Commercial License or the IB API Commercial License, as applicable. */
@@ -6,12 +6,15 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import com.ib.client.*;
+import com.quant.quant.config.ReqId;
+import com.quant.quant.mshare.Contract.ReqHistoryDataContract;
+import com.quant.quant.mshare.model.ReqHistoryDataModel;
 import samples.testbed.advisor.FAMethodSamples;
 import samples.testbed.contracts.ContractSamples;
 import samples.testbed.orders.AvailableAlgoParams;
 import samples.testbed.orders.OrderSamples;
 import samples.testbed.scanner.ScannerSubscriptionSamples;
-
+import com.quant.quant.mshare.impl.EWrapperImpl;
 import com.ib.client.Types.FADataType;
 
 public class IbkrApiImpl {
@@ -26,6 +29,8 @@ public class IbkrApiImpl {
         //! [connect]
         //! [ereader]
         final EReader reader = new EReader(m_client, m_signal);
+        final ReqHistoryDataContract reqHistoryDataContract = ReqHistoryDataContract.getInstance();
+        final List<ReqHistoryDataModel> source = reqHistoryDataContract.getSource();
 
         reader.start();
         //An additional thread is created in this program design to empty the messaging queue
@@ -48,7 +53,9 @@ public class IbkrApiImpl {
         //tickDataOperations(wrapper.getClient());
         //tickOptionComputations(wrapper.getClient());
         //orderOperations(wrapper.getClient(), wrapper.getCurrentOrderId());
-        contractOperations(wrapper.getClient());
+        for (ReqHistoryDataModel reqHistoryDataModel:source) {
+            contractOperations(wrapper.getClient(),reqHistoryDataModel);
+        }
         //hedgeSample(wrapper.getClient(), wrapper.getCurrentOrderId());
         //testAlgoSamples(wrapper.getClient(), wrapper.getCurrentOrderId());
         //bracketSample(wrapper.getClient(), wrapper.getCurrentOrderId());
@@ -517,7 +524,7 @@ public class IbkrApiImpl {
 
     }
 
-    private static void contractOperations(EClientSocket client) throws InterruptedException {
+    private static void contractOperations(EClientSocket client,ReqHistoryDataModel reqHistoryDataModel) throws InterruptedException {
 
         //! [reqcontractdetails]
         //client.reqContractDetails(210, ContractSamples.OptionForQuery());
@@ -532,30 +539,42 @@ public class IbkrApiImpl {
         //client.reqMatchingSymbols(211, "IB");
         //! [reqmatchingsymbols]
         //String queryTime = DateTime.Now.AddMonths(-6).ToString("yyyyMMdd HH:mm:ss");
+        Map<String,String> tableNameIdMap = ReqId.getInstance().getTableNameIdMap();
+        Contract contract = reqHistoryDataModel.getContract();
+        int id = Integer.parseInt(tableNameIdMap.get(reqHistoryDataModel.getTableName()));
+        String dataType = reqHistoryDataModel.getDataType();
+        String dataInterval = reqHistoryDataModel.getInterval();
         SimpleDateFormat form = new SimpleDateFormat("yyyyMMdd HH:mm:ss");
-        String formatted = "20200501 20:00:00";
+        String formatted = reqHistoryDataModel.getStart() + " " + "20:00:00";
+        String end = reqHistoryDataModel.getEnd() + " " + "00:00:00";
         Date date = null;
+        Date endDate = null;
         try {
             date = form.parse(formatted);
+            endDate = form.parse(end);
         } catch (ParseException e) {
             e.printStackTrace();
         }
         long interval = 1800 * 1000;
-        //client.reqHistoricalData(18000, ContractSamples.USStockAtSmart(), formatted, "1800 S", "1 secs", "TRADES", 0, 1, false, null);
-        //client.reqHistoricalData(18000, ContractSamples.USStockAtSmart(), "20200422 19:00:00", "1800 S", "15 secs", "TRADES", 0, 1, false, null);
-        //Thread.sleep(2000);
-        //client.cancelHistoricalData(18000);
-
-        for (int i=0;i<32;i++) {
-            formatted = form.format(date);
-            //System.out.println(formatted);
-            client.reqHistoricalData(18000, ContractSamples.USStockAtSmart(), formatted, "1800 S", "15 secs", "TRADES", 0, 1, false, null);
-            Thread.sleep(10000);
-            client.cancelHistoricalData(18000);
-            System.out.println("step finished");
-            date = new Date(date.getTime() - interval);
+        while (true) {
+            //client.reqHistoricalData(18000, ContractSamples.USStockAtSmart(), formatted, "1800 S", "1 secs", "TRADES", 0, 1, false, null);
+            //client.reqHistoricalData(18000, ContractSamples.USStockAtSmart(), "20200422 19:00:00", "1800 S", "15 secs", "TRADES", 0, 1, false, null);
+            //Thread.sleep(2000);
+            //client.cancelHistoricalData(18000);
+            if (date.before(endDate)){
+                break;
+            }
+            for (int i = 0; i < 32; i++) {
+                formatted = form.format(date);
+                //System.out.println(formatted);
+                client.reqHistoricalData(id, contract, formatted, "1800 S", dataInterval, dataType, 0, 1, false, null);
+                Thread.sleep(10000);
+                client.cancelHistoricalData(id);
+                System.out.println("step finished");
+                date = new Date(date.getTime() - interval);
+            }
+            date = new Date(date.getTime() - 16 * interval);
         }
-
     }
 
     private static void contractNewsFeed(EClientSocket client) {

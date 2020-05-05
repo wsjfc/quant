@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<allresource>
+    <resourceitem>
+        <symbol>TSLA</symbol>
+        <secType>STK</secType>
+        <currency>USD</currency>
+        <exchange>ISLAND</exchange>
+        <interval>15_SEC</interval>
+        <duration>20200501,20200430</duration>
+        <dataType>TRADES</dataType>
+    </resourceitem>
+    <resourceitem>
+        <symbol>IBKR</symbol>
+        <secType>STK</secType>
+        <currency>USD</currency>
+        <exchange>ISLAND</exchange>
+        <interval>15_SEC</interval>
+        <duration>20200501,20200430</duration>
+        <dataType>TRADES</dataType>
+    </resourceitem>
+</allresource>

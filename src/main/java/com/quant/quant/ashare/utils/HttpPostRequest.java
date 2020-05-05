@@ -7,11 +7,8 @@ import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLDecoder;
-import java.util.HashMap;
-import java.util.Map;
-import com.quant.quant.ashare.constants.ApiConstants;
-import com.alibaba.fastjson.JSON;
-import com.quant.quant.ashare.model.ListStatus;
+
+import com.quant.quant.config.ApiConstants;
 
 public class HttpPostRequest {
     public static String doPost(String apiName,String params,String fields){

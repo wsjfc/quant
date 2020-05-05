@@ -1,11 +1,6 @@
 package com.quant.quant.sql;
 
-import com.mchange.v2.c3p0.ComboPooledDataSource;
-import com.quant.quant.sql.SqlConstants;
-
-import java.beans.PropertyVetoException;
 import java.sql.*;
-import java.util.Collection;
 import java.util.List;
 
 public class SqlOp {

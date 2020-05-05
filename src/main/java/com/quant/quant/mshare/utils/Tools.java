@@ -1,4 +1,4 @@
-package com.quant.quant.mshare.auth.utils;
+package com.quant.quant.mshare.utils;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -20,5 +20,20 @@ public class Tools {
             e.printStackTrace();
         }
         return res;
+    }
+
+    public static String formatInterval(String interval){
+        String formattedInterval;
+        switch (interval){
+            case "15_SEC":
+                formattedInterval =  "15 secs";
+                break;
+            case "1_SEC":
+                formattedInterval =  "1 secs";
+                break;
+            default:
+                formattedInterval = "15 secs";
+        }
+        return formattedInterval;
     }
 }

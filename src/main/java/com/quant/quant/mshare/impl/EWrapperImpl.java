@@ -1,20 +1,18 @@
-package com.quant.quant.mshare.auth.impl;
+package com.quant.quant.mshare.impl;
 
 import java.beans.PropertyVetoException;
-import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.Array;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.text.DecimalFormat;
-import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.Map.Entry;
 import com.ib.client.*;
 import com.mchange.v2.c3p0.ComboPooledDataSource;
-import com.quant.quant.sql.SqlConstants;
+import com.quant.quant.config.ReqId;
+import com.quant.quant.config.SqlConstants;
 import com.quant.quant.sql.SqlOp;
-import com.quant.quant.mshare.auth.utils.Tools;
+import com.quant.quant.mshare.utils.Tools;
 
 //! [ewrapperimpl]
 public class EWrapperImpl implements EWrapper {
@@ -26,7 +24,7 @@ public class EWrapperImpl implements EWrapper {
     protected int currentOrderId = -1;
     private SqlOp sqlOp;
     //! [socket_declare]
-    private Properties properties = new Properties();
+    private Map<String,String> idTableNameMap;
     private ComboPooledDataSource connPool = connPool();
 
     private ComboPooledDataSource connPool(){
@@ -57,12 +55,7 @@ public class EWrapperImpl implements EWrapper {
         clientSocket = new EClientSocket(this, readerSignal);
         sqlOp = new SqlOp();
         InputStream reqIdConf = this.getClass().getClassLoader().getResourceAsStream("reqId.properties");
-        try {
-            properties.load(reqIdConf);
-        } catch (
-                IOException e) {
-            e.printStackTrace();
-        }
+        idTableNameMap = ReqId.getInstance().getIdTableNameMap();
     }
     //! [socket_init]
     public EClientSocket getClient() {
@@ -265,7 +258,7 @@ public class EWrapperImpl implements EWrapper {
     //! [historicaldata]
     @Override
     public void historicalData(int reqId, Bar bar) {
-        String tableName = properties.getProperty(String.valueOf(reqId));
+        String tableName = idTableNameMap.get(String.valueOf(reqId));
         List<String> fields = Arrays.asList("time", "open", "high", "low", "close", "volume", "count", "wap","normTime");
         List<String> fieldTypes = Arrays.asList("varchar(20)","varchar(10)","varchar(10)","varchar(10)","varchar(10)","varchar(10)","varchar(10)","varchar(10)","varchar(5)");
         Connection sqlConn = null;
@@ -274,7 +267,7 @@ public class EWrapperImpl implements EWrapper {
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        if (!sqlOp.tableIsExit(properties.getProperty(String.valueOf(reqId)),sqlConn)){
+        if (!sqlOp.tableIsExit(idTableNameMap.get(String.valueOf(reqId)),sqlConn)){
             sqlOp.createTable(tableName,fields,fieldTypes,fields.get(0),sqlConn);
         }
         //bar.time().split(" ")[1]
@@ -286,7 +279,7 @@ public class EWrapperImpl implements EWrapper {
         }
         List<String> data = Arrays.asList(bar.time(), String.valueOf(bar.open()), String.valueOf(bar.high()), String.valueOf(bar.low()),
                 String.valueOf(bar.close()),String.valueOf(bar.volume()), String.valueOf(bar.count()), String.valueOf(bar.wap()),normTime);
-        sqlOp.insertTable(properties.getProperty(String.valueOf(reqId)),fields,data,sqlConn);
+        sqlOp.insertTable(idTableNameMap.get(String.valueOf(reqId)),fields,data,sqlConn);
         try {
             sqlConn.close();
         } catch (SQLException e) {
