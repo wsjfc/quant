@@ -2,6 +2,9 @@ package com.quant.quant.mshare.impl;
 
 /* Copyright (C) 2019 Interactive Brokers LLC. All rights reserved. This code is subject to the terms
  * and conditions of the IB API Non-Commercial License or the IB API Commercial License, as applicable. */
+import java.sql.Array;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -9,6 +12,8 @@ import com.ib.client.*;
 import com.quant.quant.config.ReqId;
 import com.quant.quant.mshare.Contract.ReqHistoryDataContract;
 import com.quant.quant.mshare.model.ReqHistoryDataModel;
+import com.quant.quant.sql.SqlConn;
+import com.quant.quant.sql.SqlOp;
 import samples.testbed.advisor.FAMethodSamples;
 import samples.testbed.contracts.ContractSamples;
 import samples.testbed.orders.AvailableAlgoParams;
@@ -16,6 +21,7 @@ import samples.testbed.orders.OrderSamples;
 import samples.testbed.scanner.ScannerSubscriptionSamples;
 import com.quant.quant.mshare.impl.EWrapperImpl;
 import com.ib.client.Types.FADataType;
+import static com.quant.quant.sql.SqlConn.connectSqlDb;
 
 public class IbkrApiImpl {
 
@@ -77,7 +83,7 @@ public class IbkrApiImpl {
         //whatIfSamples(wrapper.getClient(), wrapper.getCurrentOrderId());
         //historicalTicks(wrapper.getClient());
 
-        Thread.sleep(1000000);
+        Thread.sleep(10000000);
         m_client.eDisconnect();
     }
 
@@ -539,12 +545,18 @@ public class IbkrApiImpl {
         //client.reqMatchingSymbols(211, "IB");
         //! [reqmatchingsymbols]
         //String queryTime = DateTime.Now.AddMonths(-6).ToString("yyyyMMdd HH:mm:ss");
+        SqlOp sqlOp = new SqlOp();
+        final String writeInfoTableName = "writeInfoTable";
+        List<String> fields = Arrays.asList("tableName","time","state");
+        List<String> fieldTypes = Arrays.asList("varchar(20)","varchar(20)","varchar(10)");
+        Connection sqlConn = connectSqlDb();
         Map<String,String> tableNameIdMap = ReqId.getInstance().getTableNameIdMap();
         Contract contract = reqHistoryDataModel.getContract();
         int id = Integer.parseInt(tableNameIdMap.get(reqHistoryDataModel.getTableName()));
         String dataType = reqHistoryDataModel.getDataType();
         String dataInterval = reqHistoryDataModel.getInterval();
         SimpleDateFormat form = new SimpleDateFormat("yyyyMMdd HH:mm:ss");
+        //SimpleDateFormat form_2 = new SimpleDateFormat("yyyyMMdd");
         String formatted = reqHistoryDataModel.getStart() + " " + "20:00:00";
         String end = reqHistoryDataModel.getEnd() + " " + "00:00:00";
         Date date = null;
@@ -561,19 +573,43 @@ public class IbkrApiImpl {
             //client.reqHistoricalData(18000, ContractSamples.USStockAtSmart(), "20200422 19:00:00", "1800 S", "15 secs", "TRADES", 0, 1, false, null);
             //Thread.sleep(2000);
             //client.cancelHistoricalData(18000);
+            if (!sqlOp.tableIsExit(writeInfoTableName,sqlConn)){
+                sqlOp.createTable(writeInfoTableName,fields,fieldTypes,fields.get(0) + "," + fields.get(1),sqlConn);
+            }
+
             if (date.before(endDate)){
                 break;
             }
+
+            String recordTime = form.format(date).split(" ")[0];
+            Map<String,String> termMap = new HashMap<String, String>(){{
+                put("tableName",reqHistoryDataModel.getTableName());
+                put("time",recordTime);
+                put("state","1");
+            }};
+            boolean recordIsExist = sqlOp.recordIsExit("writeInfoTable",termMap,sqlConn);
+
             for (int i = 0; i < 32; i++) {
-                formatted = form.format(date);
-                //System.out.println(formatted);
-                client.reqHistoricalData(id, contract, formatted, "1800 S", dataInterval, dataType, 0, 1, false, null);
-                Thread.sleep(10000);
-                client.cancelHistoricalData(id);
+                if (!recordIsExist) {
+                    formatted = form.format(date);
+                    //System.out.println(formatted);
+                    client.reqHistoricalData(id, contract, formatted, "1800 S", dataInterval, dataType, 0, 1, false, null);
+                    Thread.sleep(10000);
+                    client.cancelHistoricalData(id);
+                }
                 System.out.println("step finished");
                 date = new Date(date.getTime() - interval);
             }
             date = new Date(date.getTime() - 16 * interval);
+            if (!recordIsExist) {
+                sqlOp.insertTable("writeInfoTable", Arrays.asList("tableName", "time", "state")
+                        , Arrays.asList(reqHistoryDataModel.getTableName(), recordTime, "1"), sqlConn);
+            }
+        }
+        try {
+            sqlConn.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
     }
 

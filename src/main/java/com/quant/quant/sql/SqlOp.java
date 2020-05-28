@@ -1,7 +1,10 @@
 package com.quant.quant.sql;
 
+import com.quant.quant.config.SqlConstants;
+
 import java.sql.*;
 import java.util.List;
+import java.util.Map;
 
 public class SqlOp {
     //Connection conn;
@@ -23,18 +26,6 @@ public class SqlOp {
 
     public void setType(List<String> type) {
         this.type = type;
-    }
-
-    private Connection connectSqlDb(){
-        try {
-            Class.forName(JDBC_DRIVER);
-            System.out.println("连接数据库...");
-            Connection conn = DriverManager.getConnection(DB_URL,USER,PASS);
-            return conn;
-        } catch (ClassNotFoundException | SQLException e) {
-            e.printStackTrace();
-        }
-        return null;
     }
      */
 
@@ -81,7 +72,10 @@ public class SqlOp {
     public void insertTable(String tableName,List<String> fields,List<String> data,Connection conn){
         //Connection conn = connectSqlDb();
         String sql;
-        if (fields.size() == 7) {
+        if (fields.size() == 3){
+            sql = String.format("insert into %1$s(%2$s,%3$s,%4$s) values(?,?,?)",
+                    tableName,fields.get(0),fields.get(1),fields.get(2));
+        }else if (fields.size() == 7) {
             sql = String.format("insert into %1$s(%2$s,%3$s,%4$s,%5$s,%6$s,%7$s,%8$s) values(?,?,?,?,?,?,?)",
                     tableName,fields.get(0),fields.get(1),fields.get(2),fields.get(3),fields.get(4),fields.get(5),fields.get(6));
         } else if (fields.size() == 9){
@@ -119,5 +113,30 @@ public class SqlOp {
             e.printStackTrace();
         }
         return false;
+    }
+
+    public boolean recordIsExit(String tableName, Map<String,String> termMap,Connection conn) {
+        boolean ret = false;
+        String term = "";
+        for (Map.Entry<String,String> i:termMap.entrySet()){
+            if (!term.equals("")){
+                term += " and ";
+            }
+            term += i.getKey() + "=" + "'" + i.getValue() + "'";
+        }
+        String sql = "select count(*) from " + tableName + " where " + term;
+
+        try {
+            Statement sta = conn.createStatement();
+            ResultSet rs = sta.executeQuery(sql);
+            int count = 0;
+            while (rs.next()) {
+                count = rs.getInt(1);
+            }
+            ret = count != 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return ret;
     }
 }

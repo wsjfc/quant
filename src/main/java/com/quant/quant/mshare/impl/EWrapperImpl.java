@@ -13,6 +13,7 @@ import com.quant.quant.config.ReqId;
 import com.quant.quant.config.SqlConstants;
 import com.quant.quant.sql.SqlOp;
 import com.quant.quant.mshare.utils.Tools;
+import static com.quant.quant.sql.SqlConn.connPool;
 
 //! [ewrapperimpl]
 public class EWrapperImpl implements EWrapper {
@@ -26,28 +27,6 @@ public class EWrapperImpl implements EWrapper {
     //! [socket_declare]
     private Map<String,String> idTableNameMap;
     private ComboPooledDataSource connPool = connPool();
-
-    private ComboPooledDataSource connPool(){
-        SqlConstants sqlConstants = SqlConstants.getInstance();
-        final String JDBC_DRIVER = sqlConstants.getJDBC_DRIVER();
-        final String DB_URL = sqlConstants.getDB_URL();
-        final String USER = sqlConstants.getUSER();
-        final String PASS = sqlConstants.getPASS();
-        ComboPooledDataSource cpds = new ComboPooledDataSource();
-        try {
-            cpds.setDriverClass( "com.mysql.jdbc.Driver" ); //loads the jdbc driver
-        } catch (PropertyVetoException e) {
-            e.printStackTrace();
-        }
-        cpds.setJdbcUrl(DB_URL);
-        cpds.setUser(USER);
-        cpds.setPassword(PASS);
-        cpds.setMinPoolSize(10);
-        cpds.setMaxPoolSize(300);
-        cpds.setAcquireIncrement(5);
-
-        return cpds;
-    }
 
     //! [socket_init]
     public EWrapperImpl() {
